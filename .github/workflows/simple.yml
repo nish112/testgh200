@@ -1,51 +1,23 @@
-name: Third demo (cache check logic)
+name: Fourth (Failing Demo)
 
 on:
   workflow_dispatch:
 
 
 jobs:
-  build:
+  intentional-failure:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - name: 🟢 This Step Passes
+        run: echo "Starting the demo..."
 
-      - name: 🔍 ID-Based Search
-        id: cache-search
-        uses: actions/cache/restore@v4
-        with:
-          path: output/
-          # The Key is now tied to the unique Git Commit ID
-          key: build-id-${{ github.sha }}
-
-      - name: 🏗️ Logic Execution (If ID not found)
-        if: steps.cache-search.outputs.cache-hit != 'true'
+      - name: 🔴 This Step Fails (The Sabotage)
+        # We use 'exit 1' to tell GitHub the process crashed.
+        # Alternatively, you can run a non-existent command like 'npm run-magic'
         run: |
-          echo "ID ${{ github.sha }} not found in Global Store."
-          echo "Building fresh binaries..."
-          mkdir -p output
-          echo "Build Result for SHA ${{ github.sha }}" > output/build.txt
-          sleep 5
+          echo "Simulating a critical system error..."
+          exit 1 
 
-      - name: ⚡ Instant Restore (If ID matched)
-        if: steps.cache-search.outputs.cache-hit == 'true'
-        run: |
-          echo "ID ${{ github.sha }} MATCHED!"
-          echo "Retrieving pre-built binaries from Global Store..."
-          cat output/build.txt
-
-      - name: 📄 Print Cache Value & Details
-        run: |
-          echo "=== Cache File Listing ==="
-          ls -la output/
-          echo ""
-          echo "=== Content of output/build.txt ==="
-          cat output/build.txt
-
-      - name: 📦 Register ID to Global Store
-        if: steps.cache-search.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: output/
-          key: build-id-${{ github.sha }}
+      - name: ⚪ This Step Never Runs
+        # GitHub stops the job as soon as it sees a failure.
+        run: echo "You will never see this message in the logs."
