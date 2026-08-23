@@ -1,42 +1,70 @@
-name: trainee-context-demo
+name: First demo (Node.js Matrix & Artifact Demo)
 
-on: 
-  workflow_dispatch: 
+on:
+  workflow_dispatch: # Best for class: triggers the action manually from the UI
 
-env:
-  # Demonstrating Literals 
-  WORKFLOW_VERSION: ${{ 1.0 }}                # Number literal
-  IS_TRAINING_ACTIVE: ${{ true }}              # Boolean literal
-  GLOBAL_MESSGE: "Welcome Trainees!"           # String literal
 
 jobs:
-  display-context-job:
-    name: "Understanding Contexts and Variables"
+  # JOB 1: Install, Test, and Run Logic
+  build-and-test:
     runs-on: ubuntu-latest
-    environment: ENV_STATUS # The name of the environment you created in Settings
-    
+    strategy:
+      matrix:
+        # Explaining Matrix: Runs 4 parallel jobs (2 versions x 2 sets of numbers)
+        node-version: [18.x, 20.x]
+        values: ["10 20", "40 60"]
+
     steps:
-      - name: "1. Accessing 'vars' Context"
-        # Accessing UI-defined variables
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Tests
+        run: npm test
+
+      - name: Run Logic Script & Create Infrastructure
+        # Method B: Infrastructure (folder) and Data Flow (redirection) handled in YAML
         run: |
+          echo "Creating output directory on the runner..."
+          mkdir -p output
+          echo "Running logic script with matrix values: ${{ matrix.values }}"
+          node src/math.js ${{ matrix.values }} > output/result.txt
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          # Unique naming using job-index prevents matrix overwrite conflict
+          name: result-${{ matrix.node-version }}-${{ strategy.job-index }}
+          path: output/
+          retention-days: 1
+
+  # JOB 2: Aggregate results from the Matrix
+  summary:
+    needs: build-and-test # Sequential Dependency (DAG)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: final-results
+
+      - name: Display Summary and Contents
+        run: |
+          echo "Step 1: Listing the downloaded directory structure..."
+          ls -R final-results
           
-          echo "Project Code:     ${{ vars.REPO_PROJECT_CODE }}"
-          echo "Env Var (Custom): ${{ vars.training }}"
-
-      - name: "2. Accessing 'secrets' Context"
-        # Retrieving Org and Repo level secrets
-        # Note: Secrets are masked (***) in logs for security
-        run: |
-          echo "Repo Secret: ${{ secrets.REPO_LEVEL_SECRET }}"
-
-      - name: "3. System Contexts (github & job)"
-        # Metadata about the run and job
-        run: |
-          echo "Actor:       ${{ github.actor }}"
-          echo "Workflow:    ${{ github.workflow }}"
-          echo "Job Status:  ${{ job.status }}"
-
-      - name: "4. Logic with Operators and Literals"
-        
-        if: ${{ env.IS_TRAINING_ACTIVE == 'true' && env.WORKFLOW_VERSION != '0' }}
-        run: echo "The logic test passed because version is ${{ env.WORKFLOW_VERSION }}"
+          echo "Step 2: Displaying the content of every result file..."
+          echo "------------------------------------------------"
+          # Loop through files to echo filenames and their specific contents
+          for file in final-results/**/*.txt; do
+            echo "FILE: $file"
+            echo "CONTENT: $(cat "$file")"
+            echo "------------------------------------------------"
+          done
