@@ -13,8 +13,6 @@ jobs:
     # FIX: Explicitly granting write access to the GITHUB_TOKEN
     permissions:
       pull-requests: write
-      issues: write
-      contents: read
 
     steps:
       - name: Checkout Code
