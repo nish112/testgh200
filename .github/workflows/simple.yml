@@ -1,23 +1,32 @@
-name: Fourth (Failing Demo)
+name: Fifth demo (Github Script Discussion Welcome Bot)
 
 on:
-  workflow_dispatch:
-
+  discussion:
+    types: [created] # Triggers only when a new discussion starts
 
 jobs:
-  intentional-failure:
+  welcome-reply:
     runs-on: ubuntu-latest
+    permissions:
+      discussions: write # Crucial: The bot needs permission to post
     steps:
-      - name: 🟢 This Step Passes
-        run: echo "Starting the demo..."
+      - name: Post Welcome Message
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const query = `
+              mutation($discussionId: ID!, $body: String!) {
+                addDiscussionComment(input: {discussionId: $discussionId, body: $body}) {
+                  comment {
+                    url
+                  }
+                }
+              }
+            `;
+            
+            const variables = {
+              discussionId: context.payload.discussion.node_id,
+              body: `Hello @${context.payload.discussion.user.login}! 👋 Welcome to the GH-200 Lab. This is an automated GraphQL response.`
+            };
 
-      - name: 🔴 This Step Fails (The Sabotage)
-        # We use 'exit 1' to tell GitHub the process crashed.
-        # Alternatively, you can run a non-existent command like 'npm run-magic'
-        run: |
-          echo "Simulating a critical system error..."
-          exit 1 
-
-      - name: ⚪ This Step Never Runs
-        # GitHub stops the job as soon as it sees a failure.
-        run: echo "You will never see this message in the logs."
+            await github.graphql(query, variables);
