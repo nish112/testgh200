@@ -16,3 +16,11 @@ jobs:
     steps:
       - name: "Run Parallel Task"
         run: echo "I am running at the same time as the greeting job!"
+
+  # This job runs SEQUENTIALLY (only after greeting_job finishes)
+  sequential_job:
+    runs-on: ubuntu-latest
+    needs: greeting_job
+    steps:
+      - name: "Run Sequential Task"
+        run: echo "I waited for the greeting job to finish before starting."
