@@ -35,6 +35,14 @@ jobs:
           echo "Retrieving pre-built binaries from Global Store..."
           cat output/build.txt
 
+      - name: 📄 Print Cache Value & Details
+        run: |
+          echo "=== Cache File Listing ==="
+          ls -la output/
+          echo ""
+          echo "=== Content of output/build.txt ==="
+          cat output/build.txt
+
       - name: 📦 Register ID to Global Store
         if: steps.cache-search.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
